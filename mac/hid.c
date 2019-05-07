@@ -26,6 +26,7 @@
 #include <IOKit/hid/IOHIDKeys.h>
 #include <IOKit/IOKitLib.h>
 #include <CoreFoundation/CoreFoundation.h>
+#include <AvailabilityMacros.h>
 #include <wchar.h>
 #include <locale.h>
 #include <pthread.h>
@@ -295,7 +296,14 @@ static wchar_t *dup_wcs(const wchar_t *s)
  */
 static io_service_t hidapi_IOHIDDeviceGetService(IOHIDDeviceRef device)
 {
-	static void *iokit_framework = NULL;
+    /* Function IOHIDDeviceGetService appears in 10_6. But it worked up to 10.13. But Not on Mojave 10.14  */
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_12
+    if ( device ) {
+        return IOHIDDeviceGetService(device); // on newer MacOS (for example Mojave) the workaround below  causes empty Path
+    }
+#endif
+
+    static void *iokit_framework = NULL;
 	static io_service_t (*dynamic_IOHIDDeviceGetService)(IOHIDDeviceRef device) = NULL;
 
 	/* Use dlopen()/dlsym() to get a pointer to IOHIDDeviceGetService() if it exists.
