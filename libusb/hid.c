@@ -51,7 +51,7 @@
 
 #include "hidapi.h"
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || defined (__APPLE__)
 
 /* Barrier implementation because Android/Bionic don't have pthread_barrier.
    This implementation came from Brent Priddy and was posted on
