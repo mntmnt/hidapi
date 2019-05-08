@@ -398,6 +398,17 @@ static void process_pending_events(void) {
 	} while(res != kCFRunLoopRunFinished && res != kCFRunLoopRunTimedOut);
 }
 
+static CFSetRef get_devices_list(void) {
+	IOHIDManagerSetDeviceMatching(hid_mgr, NULL);
+	CFSetRef device_set = IOHIDManagerCopyDevices(hid_mgr);
+	// Sometimes, NULL is returned. Re-calling DeviceMatching and CopyDevices resolves this issue
+	if ( device_set == NULL ) {
+		IOHIDManagerSetDeviceMatchingMultiple(hid_mgr, NULL);
+		device_set = IOHIDManagerCopyDevices(hid_mgr);
+	}
+	return device_set;
+}
+
 struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, unsigned short product_id)
 {
 	struct hid_device_info *root = NULL; /* return object */
@@ -413,8 +424,10 @@ struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, 
 	process_pending_events();
 
 	/* Get a list of the Devices */
-	IOHIDManagerSetDeviceMatching(hid_mgr, NULL);
-	CFSetRef device_set = IOHIDManagerCopyDevices(hid_mgr);
+	CFSetRef device_set = get_devices_list();
+	if ( device_set == NULL ) {
+		return NULL;
+	}
 
 	/* Convert the list into a C array so we can iterate easily. */
 	num_devices = CFSetGetCount(device_set);
