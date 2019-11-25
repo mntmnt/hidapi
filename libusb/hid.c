@@ -25,6 +25,10 @@
 
 #define _GNU_SOURCE /* needed for wcsdup() before glibc 2.10 */
 
+#if defined(_WIN32) || defined(WIN32)  ||  defined(_WIN64)
+#    define WINDOWS_OS
+#endif
+
 /* C */
 #include <stdio.h>
 #include <string.h>
@@ -37,8 +41,13 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <sys/utsname.h>
+
+
+#ifndef WINDOWS_OS
+#    include <sys/ioctl.h>
+#    include <sys/utsname.h>
+#endif
+
 #include <fcntl.h>
 #include <pthread.h>
 #include <wchar.h>
@@ -55,7 +64,10 @@
 
 /* Barrier implementation because Android/Bionic don't have pthread_barrier.
    This implementation came from Brent Priddy and was posted on
-   StackOverflow. It is used with his permission. */
+   StackOverflow. It is used with his permission.
+
+   *Update: MacOS (at least on Sierra -- Mojave) does not provide pthread_barrier too
+ */
 typedef int pthread_barrierattr_t;
 typedef struct pthread_barrier {
     pthread_mutex_t mutex;
@@ -381,6 +393,19 @@ static int is_language_supported(libusb_device_handle *dev, uint16_t lang)
 }
 
 
+static wchar_t * mbstr_to_wcharstr(const char * str, int ln) {
+	assert( str && ln > 0 );
+	wchar_t * wstr = malloc( (ln + 1) * sizeof(wchar_t) );
+	memset(wstr, 0x00, (ln + 1) * sizeof(wchar_t));
+
+	// This function should just do following from for( i = 0; i < ln; ++i ) wstr[i] = str[i];
+	size_t copiedsize = mbstowcs(wstr, str, ln);
+	assert( copiedsize == ln );
+	wstr[ln] = (wchar_t)'\0';
+
+	return wstr;
+}
+
 /* This function returns a newly allocated wide string containing the USB
    device string numbered by the index. The returned string must be freed
    by using free(). */
@@ -417,8 +442,25 @@ static wchar_t *get_usb_string(libusb_device_handle *dev, uint8_t idx)
 			lang,
 			(unsigned char*)buf,
 			sizeof(buf));
-	if (len < 0)
-		return NULL;
+
+    if (len < LIBUSB_SUCCESS) {
+		LOG("libusb_get_string_descriptor failed. Try to use libusb_get_string_descriptor_ascii");
+
+		///HACK: Unfortunately, for some devices (Atmel?) libusb_get_string_descriptor fails for @p lang
+		///   Try to us libusb_get_string_descriptor_ascii which works
+		///   Next stage is to rework this function using libusb_get_string_descriptor_ascii as example
+		memset(buf, 0x00, sizeof(buf)); //! This function may be ommited by compiler
+		buf[sizeof(buf)-1] = 0;
+		len = libusb_get_string_descriptor_ascii(dev, idx,
+		        (unsigned char*)buf,
+		        sizeof(buf)-1);
+		if (len < LIBUSB_SUCCESS) {
+		    return NULL;
+		}
+		assert( 0 < len && (unsigned)len < sizeof(buf) );
+
+		return mbstr_to_wcharstr(buf, len);
+    }
 
 #ifdef __ANDROID__
 
