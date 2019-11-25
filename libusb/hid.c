@@ -42,11 +42,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-
 #ifndef WINDOWS_OS
 #    include <sys/ioctl.h>
 #    include <sys/utsname.h>
 #endif
+#include <assert.h>
 
 #include <fcntl.h>
 #include <pthread.h>
