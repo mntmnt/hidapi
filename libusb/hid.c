@@ -25,6 +25,10 @@
 
 #define _GNU_SOURCE /* needed for wcsdup() before glibc 2.10 */
 
+#if defined(_WIN32) || defined(WIN32)  ||  defined(_WIN64)
+#    define WINDOWS_OS
+#endif
+
 /* C */
 #include <stdio.h>
 #include <string.h>
@@ -37,8 +41,13 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <sys/utsname.h>
+
+
+#ifndef WINDOWS_OS
+#    include <sys/ioctl.h>
+#    include <sys/utsname.h>
+#endif
+
 #include <fcntl.h>
 #include <pthread.h>
 #include <wchar.h>
