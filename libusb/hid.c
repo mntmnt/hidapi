@@ -444,7 +444,7 @@ static wchar_t *get_usb_string(libusb_device_handle *dev, uint8_t idx)
 			sizeof(buf));
 
     if (len < LIBUSB_SUCCESS) {
-		LOG("libusb_get_string_descriptor failed. Try to use libusb_get_string_descriptor_ascii");
+		LOG("[libusb_get_string_descriptor failed. Try to use libusb_get_string_descriptor_ascii\n");
 
 		///HACK: Unfortunately, for some devices (Atmel?) libusb_get_string_descriptor fails for @p lang
 		///   Try to us libusb_get_string_descriptor_ascii which works
@@ -659,7 +659,7 @@ struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, 
 								if (res == 1) {
 									res = libusb_detach_kernel_driver(handle, interface_num);
 									if (res < 0)
-										LOG("Couldn't detach kernel driver, even though a kernel driver was attached.");
+										LOG("Couldn't detach kernel driver, even though a kernel driver was attached.\n");
 									else
 										detached = 1;
 								}
